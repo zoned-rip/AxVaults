@@ -1,5 +1,6 @@
 package com.artillexstudios.axvaults.commands.subcommands;
 
+import com.artillexstudios.axvaults.guis.VaultGui;
 import com.artillexstudios.axvaults.guis.VaultSelector;
 import com.artillexstudios.axvaults.vaults.Vault;
 import com.artillexstudios.axvaults.vaults.VaultManager;
@@ -28,7 +29,7 @@ public enum ForceOpen {
                     return;
                 }
 
-                vault.open(player);
+                new VaultGui(player, vaultPlayer, vault).open();
                 MESSAGEUTILS.sendLang(player, "vault.opened", replacements);
                 MESSAGEUTILS.sendLang(sender, "force-open-vault", replacements);
                 return;

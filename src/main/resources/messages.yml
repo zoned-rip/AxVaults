@@ -48,16 +48,22 @@ gui-items:
   close:
     material: BARRIER
     name: "&#FF3333&lClose"
+    # custom-model-data: 1010  # Optional: Add custom model data to this item
   back:
     material: BARRIER
     name: "&#FF3333&lBack"
+  filler:
+    material: BLACK_STAINED_GLASS_PANE
+    name: " "
+  page-indicator:
+    material: PAPER
+    name: "&#AAAAAA&lPage &#55ff00%page%&#AAAAAA/&#55ff00%pages%"
   previous-page:
     material: ARROW
     name: "&#FF6600&lPrevious Page"
   next-page:
     material: ARROW
     name: "&#FFCC00&lNext Page"
-
 # you can disable any messages by setting it to ""
 vault:
   not-unlocked: "&#FF0000You don't own this vault!"

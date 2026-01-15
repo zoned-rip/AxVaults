@@ -2,6 +2,7 @@ package com.artillexstudios.axvaults.listeners;
 
 import com.artillexstudios.axapi.utils.PaperUtils;
 import com.artillexstudios.axvaults.AxVaults;
+import com.artillexstudios.axvaults.guis.VaultGui;
 import com.artillexstudios.axvaults.guis.VaultSelector;
 import com.artillexstudios.axvaults.vaults.Vault;
 import com.artillexstudios.axvaults.vaults.VaultManager;
@@ -18,7 +19,18 @@ public class InventoryClickListener implements Listener {
     @EventHandler
     public void onClick(InventoryClickEvent event) {
         Player player = (Player) event.getWhoClicked();
-        if (!(PaperUtils.getHolder(event.getInventory(), false) instanceof Vault)) return;
+        Object holder = PaperUtils.getHolder(event.getInventory(), false);
+
+        if (holder instanceof VaultGui vaultGui) {
+            if (AxVaults.isStopping()) {
+                event.setCancelled(true);
+                return;
+            }
+            vaultGui.handleClick(event);
+            return;
+        }
+
+        if (!(holder instanceof Vault)) return;
         if (AxVaults.isStopping()) {
             event.setCancelled(true);
             return;

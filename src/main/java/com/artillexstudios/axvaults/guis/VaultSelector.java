@@ -36,7 +36,7 @@ public class VaultSelector {
     }
 
     public void open(int page) {
-        int rows = CONFIG.getInt("vault-selector-rows", 6);
+        int rows = Math.max(6, CONFIG.getInt("vault-selector-rows", 6));
         int pageSize = rows * 9 - 9;
 
         String title = MESSAGES.getString("guis.selector.title");
@@ -51,6 +51,9 @@ public class VaultSelector {
                 .disableAllInteractions()
                 .create();
 
+        final int maxVaults = CONFIG.getInt("max-vault-amount");
+        final boolean showLocked = CONFIG.getBoolean("show-locked-vaults", true);
+
         for (int i = 0; i < pageSize * (page + 1); i++) {
             getItemOfVault(player, i + 1, gui, guiItem -> {
                 if (guiItem == null) return;
@@ -58,16 +61,46 @@ public class VaultSelector {
             });
         }
 
+        final Section filler;
+        if ((filler = MESSAGES.getSection("gui-items.filler")) != null) {
+            final ItemStack fillerItem = buildConfiguredItem("gui-items.filler", null, ItemBuilder.create(filler).get());
+            for (int col = 1; col <= 9; col++) {
+                gui.setItem(rows, col, new GuiItem(fillerItem.clone()));
+            }
+        } else {
+            final ItemStack fallbackFiller = new ItemStack(org.bukkit.Material.BLACK_STAINED_GLASS_PANE);
+            for (int col = 1; col <= 9; col++) {
+                gui.setItem(rows, col, new GuiItem(fallbackFiller.clone()));
+            }
+        }
+
+        final Section indicator;
+        if ((indicator = MESSAGES.getSection("gui-items.page-indicator")) != null) {
+            gui.setItem(rows, 4, new GuiItem(buildPageIndicator(indicator, page, getTotalPagesString(pageSize, maxVaults, showLocked))));
+        } else {
+            gui.setItem(rows, 4, new GuiItem(new ItemStack(org.bukkit.Material.PAPER)));
+        }
+
         final Section prev;
         if ((prev = MESSAGES.getSection("gui-items.previous-page")) != null) {
-            final GuiItem item1 = new GuiItem(ItemBuilder.create(prev).get());
-            item1.setAction(event -> gui.previous());
-            gui.setItem(rows, 3, item1);
+            final GuiItem item1 = new GuiItem(buildConfiguredItem("gui-items.previous-page", null, ItemBuilder.create(prev).get()));
+            item1.setAction(event -> {
+                gui.previous();
+                updatePageIndicator(gui, rows, pageSize, maxVaults, showLocked);
+            });
+            gui.setItem(rows, 1, item1);
+        } else {
+            final GuiItem item1 = new GuiItem(new ItemStack(org.bukkit.Material.ARROW));
+            item1.setAction(event -> {
+                gui.previous();
+                updatePageIndicator(gui, rows, pageSize, maxVaults, showLocked);
+            });
+            gui.setItem(rows, 1, item1);
         }
 
         final Section next;
         if ((next = MESSAGES.getSection("gui-items.next-page")) != null) {
-            final GuiItem item2 = new GuiItem(ItemBuilder.create(next).get());
+            final GuiItem item2 = new GuiItem(buildConfiguredItem("gui-items.next-page", null, ItemBuilder.create(next).get()));
             item2.setAction(event -> {
                 gui.next();
 
@@ -77,18 +110,99 @@ public class VaultSelector {
                         gui.addItem(guiItem);
                     });
                 }
+
+                updatePageIndicator(gui, rows, pageSize, maxVaults, showLocked);
             });
-            gui.setItem(rows, 7, item2);
+            gui.setItem(rows, 9, item2);
+        } else {
+            final GuiItem item2 = new GuiItem(new ItemStack(org.bukkit.Material.ARROW));
+            item2.setAction(event -> {
+                gui.next();
+                updatePageIndicator(gui, rows, pageSize, maxVaults, showLocked);
+            });
+            gui.setItem(rows, 9, item2);
         }
 
-        final Section close;
-        if ((close = MESSAGES.getSection("gui-items.close")) != null) {
-            final GuiItem item3 = new GuiItem(ItemBuilder.create(close).get());
+        final Section backOrClose = MESSAGES.getSection("gui-items.back") != null
+                ? MESSAGES.getSection("gui-items.back")
+                : MESSAGES.getSection("gui-items.close");
+        if (backOrClose != null) {
+            final GuiItem item3 = new GuiItem(buildConfiguredItem(MESSAGES.getSection("gui-items.back") != null ? "gui-items.back" : "gui-items.close", null, ItemBuilder.create(backOrClose).get()));
+            item3.setAction(event -> event.getWhoClicked().closeInventory());
+            gui.setItem(rows, 5, item3);
+        } else {
+            final GuiItem item3 = new GuiItem(new ItemStack(org.bukkit.Material.BARRIER));
             item3.setAction(event -> event.getWhoClicked().closeInventory());
             gui.setItem(rows, 5, item3);
         }
 
         gui.open(player, page);
+    }
+
+    private void updatePageIndicator(@NotNull PaginatedGui gui, int rows, int pageSize, int maxVaults, boolean showLocked) {
+        final Section indicator = MESSAGES.getSection("gui-items.page-indicator");
+        if (indicator == null) return;
+
+        final int currentPage = gui.getCurrentPageNum() + 1;
+        gui.updateItem(rows, 4, buildPageIndicator(indicator, currentPage, getTotalPagesString(pageSize, maxVaults, showLocked)));
+        gui.update();
+    }
+
+    private @NotNull ItemStack buildPageIndicator(@NotNull Section indicatorSection, int currentPage, @NotNull String totalPages) {
+        final HashMap<String, String> replacements = new HashMap<>();
+        replacements.put("%page%", String.valueOf(currentPage));
+        replacements.put("%pages%", totalPages);
+
+        final ItemBuilder builder = ItemBuilder.create(indicatorSection);
+        builder.setName(MESSAGES.getString("gui-items.page-indicator.name"), replacements);
+        builder.setLore(MESSAGES.getStringList("gui-items.page-indicator.lore"), replacements);
+        final ItemStack item = builder.get();
+        applyCustomModelData(item, "gui-items.page-indicator");
+        return item;
+    }
+
+    private void applyCustomModelData(@NotNull ItemStack item, @NotNull String path) {
+        final String raw = MESSAGES.getString(path + ".custom-model-data");
+        if (raw == null) return;
+        final int cmd;
+        try {
+            cmd = Integer.parseInt(raw);
+        } catch (Exception ignored) {
+            return;
+        }
+        final ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+        meta.setCustomModelData(cmd);
+        item.setItemMeta(meta);
+    }
+
+    private @NotNull ItemStack buildConfiguredItem(@NotNull String path, HashMap<String, String> replacements, @NotNull ItemStack fallback) {
+        final Section section = MESSAGES.getSection(path);
+        if (section == null) return fallback;
+
+        final ItemBuilder builder = ItemBuilder.create(section);
+        if (replacements != null) {
+            final String name = MESSAGES.getString(path + ".name");
+            if (name != null) builder.setName(name, replacements);
+            builder.setLore(MESSAGES.getStringList(path + ".lore"), replacements);
+        }
+        final ItemStack item = builder.get();
+        applyCustomModelData(item, path);
+        return item;
+    }
+
+    private @NotNull String getTotalPagesString(int pageSize, int maxVaults, boolean showLocked) {
+        if (maxVaults == -1) {
+            if (!showLocked) {
+                int totalItems = vaultPlayer.getVaultMap().size();
+                int pages = Math.max(1, (totalItems + pageSize - 1) / pageSize);
+                return String.valueOf(pages);
+            }
+            return "∞";
+        }
+
+        int pages = Math.max(1, (maxVaults + pageSize - 1) / pageSize);
+        return String.valueOf(pages);
     }
 
     private void getItemOfVault(@NotNull Player player, int num, @NotNull PaginatedGui gui, Consumer<GuiItem> consumer) {
@@ -117,6 +231,8 @@ public class VaultSelector {
                 it.setItemMeta(meta);
             }
 
+            applyCustomModelData(it, "guis.selector.item-owned");
+
             it.setType(vault.getIcon());
             switch (CONFIG.getInt("selector-item-amount-mode", 1)) {
                 case 1 -> it.setAmount(num % 64 == 0 ? 64 : num % 64);
@@ -135,7 +251,7 @@ public class VaultSelector {
                 }
 
                 MESSAGEUTILS.sendLang(event.getWhoClicked(), "vault.opened", replacements);
-                vault.open(player);
+                new VaultGui(player, vaultPlayer, vault).open();
             });
             gui.update();
             consumer.accept(guiItem);
@@ -152,6 +268,8 @@ public class VaultSelector {
             final ItemStack it = builder.get();
             if (CONFIG.getInt("selector-item-amount-mode", 1) == 1)
                 it.setAmount(num % 64 == 0 ? 64 : num % 64);
+
+            applyCustomModelData(it, "guis.selector.item-locked");
 
             gui.update();
             consumer.accept(new GuiItem(it));

@@ -2,6 +2,7 @@ package com.artillexstudios.axvaults.listeners;
 
 import com.artillexstudios.axapi.utils.PaperUtils;
 import com.artillexstudios.axvaults.AxVaults;
+import com.artillexstudios.axvaults.guis.VaultGui;
 import com.artillexstudios.axvaults.utils.SoundUtils;
 import com.artillexstudios.axvaults.vaults.Vault;
 import org.bukkit.entity.Player;
@@ -19,7 +20,18 @@ public class InventoryCloseListener implements Listener {
 
     @EventHandler
     public void onClose(@NotNull InventoryCloseEvent event) {
-        if (!(PaperUtils.getHolder(event.getInventory(), false) instanceof Vault vault)) return;
+        Object holder = PaperUtils.getHolder(event.getInventory(), false);
+
+        if (holder instanceof VaultGui vaultGui) {
+            vaultGui.onClose();
+            AxVaults.getThreadedQueue().submit(() -> {
+                MESSAGEUTILS.sendLang(event.getPlayer(), "vault.closed", Map.of("%num%", "" + vaultGui.getVault().getId()));
+                SoundUtils.playSound((Player) event.getPlayer(), MESSAGES.getString("sounds.close"));
+            });
+            return;
+        }
+
+        if (!(holder instanceof Vault vault)) return;
 
         AxVaults.getThreadedQueue().submit(() -> {
             MESSAGEUTILS.sendLang(event.getPlayer(), "vault.closed", Map.of("%num%", "" + vault.getId()));

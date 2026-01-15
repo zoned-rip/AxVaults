@@ -1,5 +1,6 @@
 package com.artillexstudios.axvaults.commands.subcommands;
 
+import com.artillexstudios.axvaults.guis.VaultGui;
 import com.artillexstudios.axvaults.vaults.Vault;
 import com.artillexstudios.axvaults.vaults.VaultManager;
 import org.bukkit.OfflinePlayer;
@@ -35,7 +36,7 @@ public enum View {
                 MESSAGEUTILS.sendLang(sender, "view.not-found", replacements);
                 return;
             }
-            vault.open(sender);
+            new VaultGui(sender, vaultPlayer, vault).open();
             MESSAGEUTILS.sendLang(sender, "view.open", replacements);
         });
     }

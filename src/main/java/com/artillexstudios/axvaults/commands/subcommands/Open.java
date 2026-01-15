@@ -1,5 +1,6 @@
 package com.artillexstudios.axvaults.commands.subcommands;
 
+import com.artillexstudios.axvaults.guis.VaultGui;
 import com.artillexstudios.axvaults.guis.VaultSelector;
 import com.artillexstudios.axvaults.vaults.Vault;
 import com.artillexstudios.axvaults.vaults.VaultManager;
@@ -42,7 +43,7 @@ public enum Open {
                 return;
             }
 
-            vault.open(sender);
+            new VaultGui(sender, vaultPlayer, vault).open();
             MESSAGEUTILS.sendLang(sender, "vault.opened", replacements);
         });
     }
