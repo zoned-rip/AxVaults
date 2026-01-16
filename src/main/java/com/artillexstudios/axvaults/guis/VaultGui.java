@@ -16,6 +16,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.NamespacedKey;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -125,19 +126,15 @@ public class VaultGui implements InventoryHolder {
 
         displayInventory.setItem(NAV_ROW_START + 3, buildVaultIndicator());
 
-        final Section back = MESSAGES.getSection("gui-items.back");
-        ItemStack backItem;
-        if (back != null) {
-            backItem = buildConfiguredItem("gui-items.back", null, ItemBuilder.create(back).get());
-        } else {
-            backItem = new ItemStack(Material.BARRIER);
-            ItemMeta meta = backItem.getItemMeta();
-            if (meta != null) {
-                meta.setDisplayName("§cBack");
-                backItem.setItemMeta(meta);
-            }
+        ItemStack closeItem = new ItemStack(Material.PAPER);
+        ItemMeta closeMeta = closeItem.getItemMeta();
+        if (closeMeta != null) {
+            closeMeta.setDisplayName(StringUtils.formatToString("&#EFA749Close"));
+            closeMeta.setCustomModelData(1010);
+            closeMeta.setTooltipStyle(new NamespacedKey("minecraft", "common"));
+                        closeItem.setItemMeta(closeMeta);
         }
-        displayInventory.setItem(NAV_ROW_START + 4, backItem);
+        displayInventory.setItem(NAV_ROW_START + 4, closeItem);
 
         final Section next = MESSAGES.getSection("gui-items.next-page");
         ItemStack nextItem;
@@ -169,6 +166,7 @@ public class VaultGui implements InventoryHolder {
             builder.setLore(MESSAGES.getStringList("gui-items.page-indicator.lore"), replacements);
             final ItemStack item = builder.get();
             applyCustomModelData(item, "gui-items.page-indicator");
+            applyTooltipStyle(item, "gui-items.page-indicator");
             return item;
         } else {
             ItemStack paper = new ItemStack(Material.PAPER);
@@ -205,10 +203,10 @@ public class VaultGui implements InventoryHolder {
             return;
         }
 
-        // Back button (slot 49)
+        // Close button (slot 49)
         if (slot == NAV_ROW_START + 4) {
             saveVaultItems();
-            new VaultSelector(player, vaultPlayer).open();
+            player.closeInventory();
             return;
         }
 
@@ -256,6 +254,25 @@ public class VaultGui implements InventoryHolder {
         item.setItemMeta(meta);
     }
 
+    private void applyTooltipStyle(@NotNull ItemStack item, @NotNull String path) {
+        final String tooltipStyle = MESSAGES.getString(path + ".tooltip_style");
+        if (tooltipStyle == null) return;
+        
+        try {
+            final ItemMeta meta = item.getItemMeta();
+            if (meta == null) return;
+            
+            final String[] parts = tooltipStyle.split(":", 2);
+            final String namespace = parts.length == 2 ? parts[0] : "minecraft";
+            final String key = parts.length == 2 ? parts[1] : parts[0];
+            
+            final NamespacedKey namespacedKey = new NamespacedKey(namespace, key);
+            meta.setTooltipStyle(namespacedKey);
+            item.setItemMeta(meta);
+        } catch (Exception ignored) {
+        }
+    }
+
     private @NotNull ItemStack buildConfiguredItem(@NotNull String path, HashMap<String, String> replacements, @NotNull ItemStack fallback) {
         final Section section = MESSAGES.getSection(path);
         if (section == null) return fallback;
@@ -268,6 +285,7 @@ public class VaultGui implements InventoryHolder {
         }
         final ItemStack item = builder.get();
         applyCustomModelData(item, path);
+        applyTooltipStyle(item, path);
         return item;
     }
 

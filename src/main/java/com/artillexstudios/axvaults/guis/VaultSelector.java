@@ -9,6 +9,7 @@ import com.artillexstudios.axvaults.vaults.VaultPlayer;
 import dev.triumphteam.gui.guis.Gui;
 import dev.triumphteam.gui.guis.GuiItem;
 import dev.triumphteam.gui.guis.PaginatedGui;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -123,18 +124,16 @@ public class VaultSelector {
             gui.setItem(rows, 9, item2);
         }
 
-        final Section backOrClose = MESSAGES.getSection("gui-items.back") != null
-                ? MESSAGES.getSection("gui-items.back")
-                : MESSAGES.getSection("gui-items.close");
-        if (backOrClose != null) {
-            final GuiItem item3 = new GuiItem(buildConfiguredItem(MESSAGES.getSection("gui-items.back") != null ? "gui-items.back" : "gui-items.close", null, ItemBuilder.create(backOrClose).get()));
-            item3.setAction(event -> event.getWhoClicked().closeInventory());
-            gui.setItem(rows, 5, item3);
-        } else {
-            final GuiItem item3 = new GuiItem(new ItemStack(org.bukkit.Material.BARRIER));
-            item3.setAction(event -> event.getWhoClicked().closeInventory());
-            gui.setItem(rows, 5, item3);
+        final ItemStack closeItem = new ItemStack(org.bukkit.Material.PAPER);
+        final ItemMeta closeMeta = closeItem.getItemMeta();
+        if (closeMeta != null) {
+            closeMeta.setDisplayName(StringUtils.formatToString("&#EFA749Close"));
+            closeItem.setItemMeta(closeMeta);
+            closeMeta.setCustomModelData(1010);
         }
+        final GuiItem item3 = new GuiItem(closeItem);
+        item3.setAction(event -> event.getWhoClicked().closeInventory());
+        gui.setItem(rows, 5, item3);
 
         gui.open(player, page);
     }
@@ -176,6 +175,26 @@ public class VaultSelector {
         item.setItemMeta(meta);
     }
 
+    private void applyTooltipStyle(@NotNull ItemStack item, @NotNull String path) {
+        final String tooltipStyle = MESSAGES.getString(path + ".tooltip_style");
+        if (tooltipStyle == null) return;
+        
+        try {
+            final ItemMeta meta = item.getItemMeta();
+            if (meta == null) return;
+            
+            final String[] parts = tooltipStyle.split(":", 2);
+            final String namespace = parts.length == 2 ? parts[0] : "minecraft";
+            final String key = parts.length == 2 ? parts[1] : parts[0];
+            
+            final NamespacedKey namespacedKey = new NamespacedKey(namespace, key);
+            meta.setTooltipStyle(namespacedKey);
+            item.setItemMeta(meta);
+        } catch (Exception ignored) {
+
+        }
+    }
+
     private @NotNull ItemStack buildConfiguredItem(@NotNull String path, HashMap<String, String> replacements, @NotNull ItemStack fallback) {
         final Section section = MESSAGES.getSection(path);
         if (section == null) return fallback;
@@ -188,6 +207,7 @@ public class VaultSelector {
         }
         final ItemStack item = builder.get();
         applyCustomModelData(item, path);
+        applyTooltipStyle(item, path);
         return item;
     }
 
@@ -232,6 +252,7 @@ public class VaultSelector {
             }
 
             applyCustomModelData(it, "guis.selector.item-owned");
+            applyTooltipStyle(it, "guis.selector.item-owned");
 
             it.setType(vault.getIcon());
             switch (CONFIG.getInt("selector-item-amount-mode", 1)) {
