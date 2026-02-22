@@ -1,15 +1,7 @@
 package com.artillexstudios.axvaults.commands;
 
-import com.artillexstudios.axvaults.commands.subcommands.Converter;
-import com.artillexstudios.axvaults.commands.subcommands.Debug;
-import com.artillexstudios.axvaults.commands.subcommands.Delete;
-import com.artillexstudios.axvaults.commands.subcommands.ForceOpen;
-import com.artillexstudios.axvaults.commands.subcommands.Help;
-import com.artillexstudios.axvaults.commands.subcommands.Reload;
-import com.artillexstudios.axvaults.commands.subcommands.Save;
-import com.artillexstudios.axvaults.commands.subcommands.Set;
-import com.artillexstudios.axvaults.commands.subcommands.Stats;
-import com.artillexstudios.axvaults.commands.subcommands.View;
+import com.artillexstudios.axvaults.commands.subcommands.*;
+import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -80,5 +72,11 @@ public class AdminCommand implements OrphanCommand {
     @Subcommand("debug")
     public void debug(CommandSender sender) {
         Debug.INSTANCE.execute(sender);
+    }
+
+    @CommandPermission("axvaults.admin.cacheview")
+    @Subcommand("cacheview")
+    public void cacheView(CommandSender sender, String playerName, @Optional int slot) {
+        CacheView.INSTANCE.execute(sender, Bukkit.getOfflinePlayer(playerName), slot == 0 ? null : slot);
     }
 }
