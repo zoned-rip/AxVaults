@@ -104,6 +104,26 @@ public class MySQL implements Database {
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
+
+        String CREATE_TABLE4 = """
+            CREATE TABLE IF NOT EXISTS `axvaults_saving` (
+              `uuid` VARCHAR(36) NOT NULL,
+              PRIMARY KEY (`uuid`)
+            );
+        """;
+
+        try (Connection conn = dataSource.getConnection(); PreparedStatement stmt = conn.prepareStatement(CREATE_TABLE4)) {
+            stmt.executeUpdate();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        String CLEAR_STALE_LOCKS = "DELETE FROM `axvaults_saving`;";
+        try (Connection conn = dataSource.getConnection(); PreparedStatement stmt = conn.prepareStatement(CLEAR_STALE_LOCKS)) {
+            stmt.executeUpdate();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 
     @Override
@@ -337,6 +357,41 @@ public class MySQL implements Database {
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
+        }
+    }
+
+    public boolean tryAcquireSaveLock(String uuid) {
+        final String sql = "INSERT IGNORE INTO `axvaults_saving` (`uuid`) VALUES (?)";
+        try (Connection conn = dataSource.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, uuid);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
+    public void releaseSaveLock(String uuid) {
+        final String sql = "DELETE FROM `axvaults_saving` WHERE `uuid` = ?";
+        try (Connection conn = dataSource.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, uuid);
+            stmt.executeUpdate();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    @Override
+    public boolean isSaving(String uuid) {
+        final String sql = "SELECT 1 FROM `axvaults_saving` WHERE `uuid` = ?";
+        try (Connection conn = dataSource.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, uuid);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
         }
     }
 

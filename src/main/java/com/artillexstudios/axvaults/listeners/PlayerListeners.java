@@ -30,8 +30,22 @@ public class PlayerListeners implements Listener {
     public void onQuit(@NotNull PlayerQuitEvent event) {
         VaultPlayer vaultPlayer = VaultManager.getPlayerOrNull(event.getPlayer());
         if (vaultPlayer == null) return;
+        final String uuid = event.getPlayer().getUniqueId().toString();
+
+        if (AxVaults.getDatabase() instanceof MySQL db) {
+            db.tryAcquireSaveLock(uuid);
+        }
+
         AxVaults.getThreadedQueue().submit(() -> {
-            vaultPlayer.save();
+            if (AxVaults.getDatabase() instanceof MySQL db) {
+                try {
+                    vaultPlayer.save();
+                } finally {
+                    db.releaseSaveLock(uuid);
+                }
+            } else {
+                vaultPlayer.save();
+            }
             if (AxVaults.getDatabase() instanceof MySQL db) db.checkForChanges();
         });
     }

@@ -26,6 +26,10 @@ public interface Database {
 
     void deleteVault(@NotNull UUID uuid, int num);
 
+    default boolean isSaving(String uuid) {
+        return false;
+    }
+
     void load();
 
     void disable();

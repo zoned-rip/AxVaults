@@ -4,6 +4,7 @@ import com.artillexstudios.axapi.libs.boostedyaml.block.implementation.Section;
 import com.artillexstudios.axapi.reflection.ClassUtils;
 import com.artillexstudios.axapi.utils.ItemBuilder;
 import com.artillexstudios.axapi.utils.StringUtils;
+import com.artillexstudios.axvaults.AxVaults;
 import com.artillexstudios.axvaults.vaults.Vault;
 import com.artillexstudios.axvaults.vaults.VaultPlayer;
 import dev.triumphteam.gui.guis.Gui;
@@ -268,6 +269,11 @@ public class VaultSelector {
                         return;
                     }
                     new ItemPicker(player, vaultPlayer).open(vault, gui.getCurrentPageNum(), 1);
+                    return;
+                }
+
+                if (AxVaults.getDatabase().isSaving(vaultPlayer.getUUID().toString())) {
+                    MESSAGEUTILS.sendLang(player, "vault.saving");
                     return;
                 }
 
