@@ -22,7 +22,20 @@ public class PlayerListeners implements Listener {
 
     @EventHandler
     public void onJoin(@NotNull PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+
+        // In theory this is just second checking if it fails to remove cache after leaving (99% sure
+        VaultPlayer existing = VaultManager.getPlayerOrNull(player);
+        if (existing != null) {
+            VaultManager.getPlayers().remove(player.getUniqueId());
+            if (player.isOp()) {
+                player.sendMessage("§c[AXVAULTS DEBUG] Old cache found and cleared!");
+            }
+        }
+
         VaultManager.loadPlayer(event.getPlayer());
+
+
         if (AxVaults.getDatabase() instanceof MySQL db) db.checkForChanges();
     }
 
@@ -31,6 +44,7 @@ public class PlayerListeners implements Listener {
         VaultPlayer vaultPlayer = VaultManager.getPlayerOrNull(event.getPlayer());
         if (vaultPlayer == null) return;
         final String uuid = event.getPlayer().getUniqueId().toString();
+
 
         if (AxVaults.getDatabase() instanceof MySQL db) {
             db.tryAcquireSaveLock(uuid);
@@ -42,11 +56,14 @@ public class PlayerListeners implements Listener {
                     vaultPlayer.save();
                 } finally {
                     db.releaseSaveLock(uuid);
+                    db.checkForChanges();
+                    // Clear cache
+                    VaultManager.getPlayers().remove(event.getPlayer().getUniqueId());
                 }
             } else {
                 vaultPlayer.save();
+                VaultManager.getPlayers().remove(event.getPlayer().getUniqueId());
             }
-            if (AxVaults.getDatabase() instanceof MySQL db) db.checkForChanges();
         });
     }
 }
